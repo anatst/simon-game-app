@@ -7,6 +7,7 @@
 import { useState, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { EntryPage } from './pages/EntryPage';
+import { GamePage } from './pages/GamePage';
 import { WaitingRoomPage } from './pages/WaitingRoomPage';
 import { LandscapeWarning } from './components/ui/LandscapeWarning';
 import { SplashScreen } from './components/ui/SplashScreen';
@@ -25,7 +26,8 @@ function App() {
       )}
       <LandscapeWarning />
       <Routes>
-        <Route path="/" element={<EntryPage />} />
+        <Route path="/" element={<GamePage />} />
+        <Route path="/entry" element={<EntryPage />} />
         <Route path="/waiting" element={<WaitingRoomPage />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
