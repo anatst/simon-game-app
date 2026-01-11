@@ -1,9 +1,9 @@
+/* Elite Mobile Game Animations - must be first */
+@import './styles/elite-animations.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Elite Mobile Game Animations */
-@import './styles/elite-animations.css';
 
 /* =============================================================================
    MOBILE-FIRST CSS RULES
