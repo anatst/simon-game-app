@@ -281,7 +281,7 @@ export function WaitingRoomPage() {
   // Render game board if active
   if (roomStatus === 'active' && isGameActive) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 flex items-center justify-center p-2 sm:p-4">
+      <div className="min-h-screen bg-white flex items-center justify-center p-2 sm:p-4">
         {/* Mute Button */}
         <MuteButton />
         
@@ -353,15 +353,15 @@ export function WaitingRoomPage() {
           
           {/* Message Display */}
           <div className="mt-6 text-center">
-            <p className="text-white text-lg font-medium">{message}</p>
+            <p className="text-gray-800 text-lg font-medium">{message}</p>
           </div>
           
           {/* Players Status */}
-          <div className="mt-8 bg-white/10 backdrop-blur rounded-2xl p-4">
-            <h3 className="text-white font-bold mb-2">Players</h3>
+          <div className="mt-8 bg-gray-100 rounded-2xl p-4">
+            <h3 className="text-gray-800 font-bold mb-2">Players</h3>
             <div className="grid grid-cols-2 gap-2">
               {players.map(player => (
-                <div key={player.id} className="text-white/80 text-sm">
+                <div key={player.id} className="text-gray-700 text-sm">
                   {player.displayName} {player.isHost && '👑'}
                 </div>
               ))}
@@ -375,10 +375,10 @@ export function WaitingRoomPage() {
   // Render countdown
   if (roomStatus === 'countdown' && countdownValue !== null) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-white flex items-center justify-center p-4">
         <div className="text-center">
-          <h1 className="text-6xl sm:text-7xl md:text-9xl font-bold text-white mb-4">{countdownValue}</h1>
-          <p className="text-lg sm:text-xl md:text-2xl text-white/80">Get ready!</p>
+          <h1 className="text-6xl sm:text-7xl md:text-9xl font-bold text-gray-800 mb-4">{countdownValue}</h1>
+          <p className="text-lg sm:text-xl md:text-2xl text-gray-800">Get ready!</p>
         </div>
       </div>
     );
@@ -386,7 +386,7 @@ export function WaitingRoomPage() {
   
   // Render waiting room
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center p-3 sm:p-4">
+    <div className="min-h-screen bg-white flex items-center justify-center p-3 sm:p-4">
       {/* Toast notification */}
       {toast && (
         <Toast

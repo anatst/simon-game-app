@@ -1,0 +1,388 @@
+/**
+ * NEON × SIMON - 80s Retro-Futurism UI Guidelines
+ * 
+ * A high-end vintage synthesizer aesthetic found in a neon-lit arcade.
+ * Dark mode with heavy neon glows (pink, cyan, lime, amber) and a "lo-fi synth" feel.
+ */
+
+/* =============================================================================
+   GOOGLE FONTS IMPORT
+   ============================================================================= */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Press+Start+2P&family=Space+Mono:wght@400;700&display=swap');
+
+/* =============================================================================
+   CSS CUSTOM PROPERTIES (COLOR PALETTE)
+   ============================================================================= */
+
+:root {
+  /* Core Colors */
+  --background: 260 30% 6%;        /* Deep space black */
+  --foreground: 0 0% 95%;          /* Off-white text */
+  --card: 260 35% 10%;             /* Elevated surface */
+  --muted: 260 25% 18%;            /* Dimmed arcade purple */
+  --muted-foreground: 260 15% 60%; /* Subdued text */
+  --border: 260 30% 20%;           /* Subtle borders */
+
+  /* Neon Colors (The Stars) */
+  --neon-pink: 330 100% 60%;       /* Hot pink - Primary accent */
+  --neon-cyan: 185 100% 50%;       /* Electric cyan - Secondary */
+  --neon-lime: 120 100% 50%;       /* Radioactive green - Success */
+  --neon-amber: 35 100% 55%;       /* Gold/amber - Highlights */
+  --neon-purple: 280 100% 60%;     /* Deep purple - Tertiary */
+
+  /* Simon Button Colors */
+  --simon-green: 120 100% 45%;
+  --simon-red: 0 100% 55%;
+  --simon-yellow: 45 100% 55%;
+  --simon-blue: 210 100% 55%;
+
+  /* Typography */
+  --font-orbitron: 'Orbitron', sans-serif;     /* Headers, scores, titles */
+  --font-arcade: 'Press Start 2P', cursive;    /* Retro game text, buttons */
+  --font-space: 'Space Mono', monospace;       /* Body text, UI labels */
+
+  /* Gradients */
+  --gradient-synthwave: linear-gradient(180deg, hsl(280 60% 15%) 0%, hsl(260 30% 6%) 50%, hsl(330 30% 8%) 100%);
+  --gradient-neon-border: linear-gradient(135deg, hsl(330 100% 60%), hsl(185 100% 50%), hsl(120 100% 50%), hsl(35 100% 55%));
+  --gradient-chrome: linear-gradient(180deg, hsl(0 0% 95%) 0%, hsl(0 0% 70%) 50%, hsl(0 0% 95%) 100%);
+}
+
+/* =============================================================================
+   BASE STYLES
+   ============================================================================= */
+
+body {
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: var(--font-space);
+}
+
+/* =============================================================================
+   TYPOGRAPHY UTILITIES
+   ============================================================================= */
+
+.font-orbitron {
+  font-family: var(--font-orbitron);
+}
+
+.font-arcade {
+  font-family: var(--font-arcade);
+}
+
+.font-space {
+  font-family: var(--font-space);
+}
+
+/* =============================================================================
+   NEON TEXT EFFECTS
+   ============================================================================= */
+
+.neon-text-pink {
+  color: hsl(var(--neon-pink));
+  text-shadow: 
+    0 0 5px hsl(var(--neon-pink)),
+    0 0 10px hsl(var(--neon-pink)),
+    0 0 20px hsl(var(--neon-pink)),
+    0 0 40px hsl(var(--neon-pink) / 0.5);
+}
+
+.neon-text-cyan {
+  color: hsl(var(--neon-cyan));
+  text-shadow: 
+    0 0 5px hsl(var(--neon-cyan)),
+    0 0 10px hsl(var(--neon-cyan)),
+    0 0 20px hsl(var(--neon-cyan)),
+    0 0 40px hsl(var(--neon-cyan) / 0.5);
+}
+
+.neon-text-lime {
+  color: hsl(var(--neon-lime));
+  text-shadow: 
+    0 0 5px hsl(var(--neon-lime)),
+    0 0 10px hsl(var(--neon-lime)),
+    0 0 20px hsl(var(--neon-lime)),
+    0 0 40px hsl(var(--neon-lime) / 0.5);
+}
+
+.neon-text-amber {
+  color: hsl(var(--neon-amber));
+  text-shadow: 
+    0 0 5px hsl(var(--neon-amber)),
+    0 0 10px hsl(var(--neon-amber)),
+    0 0 20px hsl(var(--neon-amber)),
+    0 0 40px hsl(var(--neon-amber) / 0.5);
+}
+
+.neon-text-purple {
+  color: hsl(var(--neon-purple));
+  text-shadow: 
+    0 0 5px hsl(var(--neon-purple)),
+    0 0 10px hsl(var(--neon-purple)),
+    0 0 20px hsl(var(--neon-purple)),
+    0 0 40px hsl(var(--neon-purple) / 0.5);
+}
+
+/* =============================================================================
+   NEON BORDER GLOW
+   ============================================================================= */
+
+.neon-border {
+  border: 2px solid hsl(var(--neon-pink));
+  box-shadow: 
+    inset 0 0 15px hsl(var(--neon-pink) / 0.2),
+    0 0 15px hsl(var(--neon-pink) / 0.4),
+    0 0 30px hsl(var(--neon-pink) / 0.2);
+}
+
+.neon-border-cyan {
+  border: 2px solid hsl(var(--neon-cyan));
+  box-shadow: 
+    inset 0 0 15px hsl(var(--neon-cyan) / 0.2),
+    0 0 15px hsl(var(--neon-cyan) / 0.4),
+    0 0 30px hsl(var(--neon-cyan) / 0.2);
+}
+
+.neon-border-lime {
+  border: 2px solid hsl(var(--neon-lime));
+  box-shadow: 
+    inset 0 0 15px hsl(var(--neon-lime) / 0.2),
+    0 0 15px hsl(var(--neon-lime) / 0.4),
+    0 0 30px hsl(var(--neon-lime) / 0.2);
+}
+
+.neon-border-amber {
+  border: 2px solid hsl(var(--neon-amber));
+  box-shadow: 
+    inset 0 0 15px hsl(var(--neon-amber) / 0.2),
+    0 0 15px hsl(var(--neon-amber) / 0.4),
+    0 0 30px hsl(var(--neon-amber) / 0.2);
+}
+
+.neon-border-purple {
+  border: 2px solid hsl(var(--neon-purple));
+  box-shadow: 
+    inset 0 0 15px hsl(var(--neon-purple) / 0.2),
+    0 0 15px hsl(var(--neon-purple) / 0.4),
+    0 0 30px hsl(var(--neon-purple) / 0.2);
+}
+
+/* =============================================================================
+   COMPONENT PATTERNS
+   ============================================================================= */
+
+/* Arcade Frame (Cards/Containers) */
+.arcade-frame {
+  background: linear-gradient(145deg, hsl(260 35% 12%), hsl(260 30% 6%));
+  border: 3px solid hsl(260 30% 25%);
+  box-shadow: 
+    inset 0 2px 10px rgba(255, 255, 255, 0.05),
+    0 10px 40px rgba(0, 0, 0, 0.5);
+  border-radius: 1rem;
+}
+
+/* Grid Background Pattern */
+.grid-pattern {
+  background-image: 
+    linear-gradient(hsl(260 30% 15% / 0.5) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(260 30% 15% / 0.5) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* CRT Scanline Overlay */
+.crt-scanlines::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.1) 2px,
+    rgba(0, 0, 0, 0.1) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* =============================================================================
+   ANIMATIONS
+   ============================================================================= */
+
+/* Neon Pulse */
+@keyframes pulseNeon {
+  0%, 100% { 
+    opacity: 1; 
+    filter: brightness(1); 
+  }
+  50% { 
+    opacity: 0.8; 
+    filter: brightness(1.2); 
+  }
+}
+
+.pulse-neon {
+  animation: pulseNeon 2s ease-in-out infinite;
+}
+
+/* Flicker Effect (CRT) */
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  3% { opacity: 0.9; }
+  6% { opacity: 1; }
+  7% { opacity: 0.85; }
+  9% { opacity: 1; }
+  92% { opacity: 1; }
+  93% { opacity: 0.9; }
+  95% { opacity: 1; }
+}
+
+.flicker {
+  animation: flicker 0.15s infinite;
+}
+
+/* Glow Pulse */
+@keyframes glowPulse {
+  0%, 100% { 
+    box-shadow: 0 0 20px currentColor, 0 0 40px currentColor; 
+  }
+  50% { 
+    box-shadow: 0 0 30px currentColor, 0 0 60px currentColor, 0 0 80px currentColor; 
+  }
+}
+
+.glow-pulse {
+  animation: glowPulse 2s ease-in-out infinite;
+}
+
+/* Victory Strobe */
+@keyframes victoryStrobe {
+  0%, 100% { opacity: 1; }
+  25% { opacity: 0.3; }
+  50% { opacity: 1; }
+  75% { opacity: 0.4; }
+}
+
+.victory-strobe {
+  animation: victoryStrobe 0.5s infinite;
+}
+
+/* Float */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* =============================================================================
+   SIMON BUTTON SHADOWS
+   ============================================================================= */
+
+/* Green Button */
+.simon-green-shadow {
+  box-shadow: 
+    0 0 30px rgba(16, 185, 129, 0.5),
+    inset 0 0 20px rgba(255, 255, 255, 0.2);
+}
+
+.simon-green-shadow-active {
+  box-shadow: 
+    0 0 60px rgba(16, 185, 129, 0.9),
+    0 0 100px rgba(16, 185, 129, 0.6),
+    inset 0 0 30px rgba(255, 255, 255, 0.4);
+}
+
+/* Red Button */
+.simon-red-shadow {
+  box-shadow: 
+    0 0 30px rgba(239, 68, 68, 0.5),
+    inset 0 0 20px rgba(255, 255, 255, 0.2);
+}
+
+.simon-red-shadow-active {
+  box-shadow: 
+    0 0 60px rgba(239, 68, 68, 0.9),
+    0 0 100px rgba(239, 68, 68, 0.6),
+    inset 0 0 30px rgba(255, 255, 255, 0.4);
+}
+
+/* Yellow Button */
+.simon-yellow-shadow {
+  box-shadow: 
+    0 0 30px rgba(251, 191, 36, 0.5),
+    inset 0 0 20px rgba(255, 255, 255, 0.2);
+}
+
+.simon-yellow-shadow-active {
+  box-shadow: 
+    0 0 60px rgba(251, 191, 36, 0.9),
+    0 0 100px rgba(251, 191, 36, 0.6),
+    inset 0 0 30px rgba(255, 255, 255, 0.4);
+}
+
+/* Blue Button */
+.simon-blue-shadow {
+  box-shadow: 
+    0 0 30px rgba(59, 130, 246, 0.5),
+    inset 0 0 20px rgba(255, 255, 255, 0.2);
+}
+
+.simon-blue-shadow-active {
+  box-shadow: 
+    0 0 60px rgba(59, 130, 246, 0.9),
+    0 0 100px rgba(59, 130, 246, 0.6),
+    inset 0 0 30px rgba(255, 255, 255, 0.4);
+}
+
+/* =============================================================================
+   UTILITY CLASSES
+   ============================================================================= */
+
+/* Background Colors */
+.bg-neon-pink { background-color: hsl(var(--neon-pink)); }
+.bg-neon-cyan { background-color: hsl(var(--neon-cyan)); }
+.bg-neon-lime { background-color: hsl(var(--neon-lime)); }
+.bg-neon-amber { background-color: hsl(var(--neon-amber)); }
+.bg-neon-purple { background-color: hsl(var(--neon-purple)); }
+
+.bg-simon-green { background-color: hsl(var(--simon-green)); }
+.bg-simon-red { background-color: hsl(var(--simon-red)); }
+.bg-simon-yellow { background-color: hsl(var(--simon-yellow)); }
+.bg-simon-blue { background-color: hsl(var(--simon-blue)); }
+
+/* Text Colors */
+.text-neon-pink { color: hsl(var(--neon-pink)); }
+.text-neon-cyan { color: hsl(var(--neon-cyan)); }
+.text-neon-lime { color: hsl(var(--neon-lime)); }
+.text-neon-amber { color: hsl(var(--neon-amber)); }
+.text-neon-purple { color: hsl(var(--neon-purple)); }
+
+/* Border Colors */
+.border-neon-pink { border-color: hsl(var(--neon-pink)); }
+.border-neon-cyan { border-color: hsl(var(--neon-cyan)); }
+.border-neon-lime { border-color: hsl(var(--neon-lime)); }
+.border-neon-amber { border-color: hsl(var(--neon-amber)); }
+.border-neon-purple { border-color: hsl(var(--neon-purple)); }
+
+/* =============================================================================
+   DESIGN RULES (Documentation)
+   ============================================================================= */
+
+/*
+ * DESIGN RULES:
+ * 
+ * 1. Never use pure white - Use foreground (off-white) or neon colors
+ * 2. Avoid flat colors - Always add gradients or glow effects
+ * 3. Layer shadows - Multiple box-shadows create depth
+ * 4. Use inset shadows - Adds that "pressed into the surface" feel
+ * 5. Animate subtly - Flickering, pulsing, floating animations
+ * 6. Keep text readable - Neon effects for headers, plain for body
+ * 7. Dark backgrounds only - This is a dark-mode-first design
+ * 8. Round corners generously - Arcade buttons feel soft and tactile
+ */
+
