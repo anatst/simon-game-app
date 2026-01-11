@@ -6,7 +6,7 @@
  */
 
 import { useEffect, useState, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useSimonStore } from '../store/simonStore';
 import { socketService } from '../services/socketService';
@@ -18,7 +18,6 @@ import { Toast } from '../components/ui/Toast';
 import { MuteButton } from '../components/ui/MuteButton';
 
 export function GamePage() {
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { session, clearSession, setSession } = useAuthStore();
   const gameCode = session?.gameCode;
@@ -416,7 +415,7 @@ export function GamePage() {
                 submitSequence(gameCode, playerId);
               }
             }}
-            disabled={isEliminated || (!session && roomStatus === 'waiting') || (session && roomStatus === 'waiting' && !isHost && players.length > 1)}
+            disabled={isEliminated || (!session && roomStatus === 'waiting') || (!!session && roomStatus === 'waiting' && !isHost && players.length > 1)}
             secondsRemaining={secondsRemaining}
             timerColor={timerColor}
             isTimerPulsing={isTimerPulsing}
@@ -428,7 +427,7 @@ export function GamePage() {
               <div className="bg-white/95 backdrop-blur-sm rounded-full p-6 shadow-2xl pointer-events-auto">
                 <button
                   onClick={handleStartClick}
-                  disabled={session && !isHost && players.length > 1}
+                  disabled={!!session && !isHost && players.length > 1}
                   className={`
                     bg-green-500 hover:bg-green-600 active:bg-green-700 
                     text-white font-bold py-4 px-8 rounded-full 
