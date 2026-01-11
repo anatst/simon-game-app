@@ -6,11 +6,12 @@
  */
 
 import { useEffect, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useSimonStore } from '../store/simonStore';
 import { socketService } from '../services/socketService';
 import { soundService } from '../services/soundService';
+import { createSession, joinGame } from '../services/authService';
 import { CircularSimonBoard } from '../components/game/CircularSimonBoard';
 import { GameOverScreen } from '../components/game/GameOverScreen';
 import { Toast } from '../components/ui/Toast';
@@ -18,9 +19,22 @@ import { MuteButton } from '../components/ui/MuteButton';
 
 export function GamePage() {
   const navigate = useNavigate();
-  const { session, clearSession } = useAuthStore();
+  const [searchParams] = useSearchParams();
+  const { session, clearSession, setSession } = useAuthStore();
   const gameCode = session?.gameCode;
   const playerId = session?.playerId;
+  
+  // Menu drawer state
+  const [showMenuDrawer, setShowMenuDrawer] = useState(false);
+  
+  // Setup form state
+  const [showJoinForm, setShowJoinForm] = useState(false);
+  const [formMode, setFormMode] = useState<'create' | 'join'>('join');
+  const [displayName, setDisplayName] = useState('');
+  const [joinGameCode, setJoinGameCode] = useState('');
+  const [avatarId, setAvatarId] = useState('1');
+  const [loading, setLoading] = useState(false);
+  const [setupError, setSetupError] = useState('');
   
   const { 
     isGameActive, 
@@ -55,12 +69,92 @@ export function GamePage() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
   const lastCountdownValue = useRef<number | null>(null);
   
-  // Redirect to entry if no session
+  // Handle invite link with game code in URL
   useEffect(() => {
-    if (!session) {
-      navigate('/entry');
+    const joinCode = searchParams.get('join');
+    if (joinCode && !session) {
+      setFormMode('join');
+      setShowJoinForm(true);
+      setJoinGameCode(joinCode.toUpperCase());
     }
-  }, [session, navigate]);
+  }, [searchParams, session]);
+  
+  // Handle start new solo game
+  const handleStartSoloGame = async () => {
+    setShowMenuDrawer(false);
+    setLoading(true);
+    setSetupError('');
+
+    try {
+      // Generate a random name for solo game
+      const soloName = `Player${Math.floor(Math.random() * 1000)}`;
+      const response = await createSession(soloName, avatarId);
+      setSession(response.session);
+      
+      // Wait a bit for socket connection, then auto-start
+      setTimeout(async () => {
+        await soundService.init();
+        const socket = socketService.getSocket();
+        if (socket && response.session.gameCode && response.session.playerId) {
+          socket.emit('start_game', { 
+            gameCode: response.session.gameCode, 
+            playerId: response.session.playerId 
+          });
+        }
+      }, 500);
+    } catch (err) {
+      setSetupError(err instanceof Error ? err.message : 'Failed to start solo game');
+      setLoading(false);
+    }
+  };
+
+  // Handle create group game
+  const handleCreateGroupGame = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setShowMenuDrawer(false);
+    setLoading(true);
+    setSetupError('');
+
+    try {
+      // Use displayName if set, otherwise generate random
+      const playerName = displayName || `Player${Math.floor(Math.random() * 1000)}`;
+      const response = await createSession(playerName, avatarId);
+      setSession(response.session);
+      setShowJoinForm(false);
+    } catch (err) {
+      setSetupError(err instanceof Error ? err.message : 'Failed to create game');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle join game
+  const handleJoinGame = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSetupError('');
+    setLoading(true);
+
+    try {
+      const response = await joinGame(displayName, avatarId, joinGameCode);
+      setSession(response.session);
+      setShowJoinForm(false);
+    } catch (err) {
+      setSetupError(err instanceof Error ? err.message : 'Failed to join game');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Handle main START button click
+  const handleStartClick = () => {
+    if (session) {
+      // If already in a game, start it
+      handleStartGame();
+    } else {
+      // Show menu drawer
+      setShowMenuDrawer(true);
+    }
+  };
   
   // Initialize on mount
   useEffect(() => {
@@ -211,7 +305,7 @@ export function GamePage() {
   const handleGoHome = () => {
     cleanup();
     clearSession();
-    navigate('/entry');
+    // Stay on same page, setup overlay will show
   };
   
   // Render Game Over screen
@@ -244,9 +338,9 @@ export function GamePage() {
     );
   }
 
-  // Render game board (always visible, with start overlay when waiting)
+  // Render game board (always visible, with START button in center)
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-2 sm:p-4 relative">
+    <div className="min-h-screen bg-white flex items-center justify-center p-2 sm:p-4 relative overflow-hidden">
       {/* Toast notification */}
       {toast && (
         <Toast
@@ -256,9 +350,10 @@ export function GamePage() {
         />
       )}
       
-      {/* Mute Button */}
-      <MuteButton />
+      {/* Mute Button - only show when session exists */}
+      {session && <MuteButton />}
       
+      {/* Game Board - always visible */}
       <div className="flex flex-col items-center w-full max-w-md">
         {/* Scoreboard - only show when game is active */}
         {isGameActive && Object.keys(scores).length > 0 && (
@@ -321,32 +416,32 @@ export function GamePage() {
                 submitSequence(gameCode, playerId);
               }
             }}
-            disabled={isEliminated || roomStatus === 'waiting'}
+            disabled={isEliminated || (!session && roomStatus === 'waiting') || (session && roomStatus === 'waiting' && !isHost && players.length > 1)}
             secondsRemaining={secondsRemaining}
             timerColor={timerColor}
             isTimerPulsing={isTimerPulsing}
           />
           
-          {/* Start Button Overlay - shown when game is waiting */}
-          {roomStatus === 'waiting' && (
+          {/* START Button - always visible in center */}
+          {(!session || (session && roomStatus === 'waiting')) && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="bg-white/95 backdrop-blur-sm rounded-full p-6 shadow-2xl pointer-events-auto">
                 <button
-                  onClick={handleStartGame}
-                  disabled={!isHost && players.length > 1}
+                  onClick={handleStartClick}
+                  disabled={session && !isHost && players.length > 1}
                   className={`
                     bg-green-500 hover:bg-green-600 active:bg-green-700 
                     text-white font-bold py-4 px-8 rounded-full 
                     transition-all duration-200 text-xl sm:text-2xl
                     min-h-[80px] min-w-[200px]
-                    ${!isHost && players.length > 1 
+                    ${session && !isHost && players.length > 1 
                       ? 'opacity-50 cursor-not-allowed' 
                       : 'shadow-lg active:scale-95'
                     }
                   `}
                   style={{ touchAction: 'manipulation' }}
                 >
-                  {!isHost && players.length > 1 ? (
+                  {session && !isHost && players.length > 1 ? (
                     'Waiting for host...'
                   ) : (
                     '▶️ START'
@@ -365,7 +460,7 @@ export function GamePage() {
         )}
         
         {/* Players Status - only show when waiting */}
-        {roomStatus === 'waiting' && players.length > 0 && (
+        {session && roomStatus === 'waiting' && players.length > 0 && (
           <div className="mt-8 bg-gray-100 rounded-2xl p-4 w-full">
             <h3 className="text-gray-800 font-bold mb-2 text-center">
               Players ({players.length})
@@ -380,6 +475,163 @@ export function GamePage() {
           </div>
         )}
       </div>
+      
+      {/* Bottom Menu Drawer (iOS-style) */}
+      {showMenuDrawer && (
+        <>
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/50 z-40 transition-opacity"
+            onClick={() => setShowMenuDrawer(false)}
+          />
+          
+          {/* Drawer */}
+          <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl z-50 transform transition-transform duration-300 ease-out">
+            <div className="p-4">
+              {/* Handle bar */}
+              <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4" />
+              
+              {/* Menu Options */}
+              <div className="space-y-2 pb-4">
+                <button
+                  onClick={handleStartSoloGame}
+                  disabled={loading}
+                  className="w-full bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white font-bold py-4 px-6 rounded-xl transition-all duration-200 text-lg min-h-[64px] flex items-center justify-center gap-3"
+                  style={{ touchAction: 'manipulation' }}
+                >
+                  <span className="text-2xl">🎮</span>
+                  <span>Start New Solo Game</span>
+                </button>
+                
+                <button
+                  onClick={() => {
+                    setShowMenuDrawer(false);
+                    setFormMode('create');
+                    setShowJoinForm(true);
+                    setJoinGameCode(''); // Clear join code
+                  }}
+                  className="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold py-4 px-6 rounded-xl transition-all duration-200 text-lg min-h-[64px] flex items-center justify-center gap-3"
+                  style={{ touchAction: 'manipulation' }}
+                >
+                  <span className="text-2xl">👥</span>
+                  <span>Create New Group Game</span>
+                </button>
+                
+                <button
+                  onClick={() => {
+                    setShowMenuDrawer(false);
+                    setFormMode('join');
+                    setShowJoinForm(true);
+                  }}
+                  className="w-full bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-bold py-4 px-6 rounded-xl transition-all duration-200 text-lg min-h-[64px] flex items-center justify-center gap-3"
+                  style={{ touchAction: 'manipulation' }}
+                >
+                  <span className="text-2xl">🔗</span>
+                  <span>Join a Game</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+      
+      {/* Join/Create Game Form Modal */}
+      {showJoinForm && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => {
+                setShowJoinForm(false);
+                setSetupError('');
+                setJoinGameCode('');
+              }}
+              className="text-gray-600 hover:text-gray-800 mb-4 text-sm"
+            >
+              ← Back
+            </button>
+            
+            <h2 className="text-2xl font-bold mb-6">
+              {formMode === 'join' ? 'Join Game' : 'Create Group Game'}
+            </h2>
+            
+            <form onSubmit={formMode === 'join' ? handleJoinGame : handleCreateGroupGame} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Display Name
+                </label>
+                <input
+                  type="text"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  placeholder="Enter your name"
+                  minLength={3}
+                  maxLength={12}
+                  required
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                />
+              </div>
+              
+              {formMode === 'join' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Game Code
+                    {searchParams.get('join') && (
+                      <span className="ml-2 text-xs text-green-600 font-normal">
+                        ✅ Pre-filled from invite link
+                      </span>
+                    )}
+                  </label>
+                  <input
+                    type="text"
+                    value={joinGameCode}
+                    onChange={(e) => setJoinGameCode(e.target.value.toUpperCase())}
+                    placeholder="ABCDEF"
+                    maxLength={6}
+                    required
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent uppercase"
+                  />
+                </div>
+              )}
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Avatar
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {['1', '2', '3', '4', '5', '6', '7', '8'].map((id) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setAvatarId(id)}
+                      className={`p-4 rounded-lg border-2 transition-all ${
+                        avatarId === id
+                          ? 'border-purple-600 bg-purple-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <span className="text-3xl">{['😀', '🎮', '🚀', '⚡', '🎨', '🎯', '🏆', '🌟'][parseInt(id) - 1]}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              {setupError && (
+                <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg text-sm">
+                  {setupError}
+                </div>
+              )}
+              
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-purple-600 hover:bg-purple-700 active:bg-purple-800 disabled:bg-gray-400 text-white font-bold py-4 px-6 rounded-xl transition-all text-lg min-h-[56px]"
+              >
+                {loading ? 'Loading...' : formMode === 'join' ? 'Join Game' : 'Create Game'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
