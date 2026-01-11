@@ -15,7 +15,7 @@ import type { Color } from '../shared/types';
 // TYPES
 // =============================================================================
 
-type SoundType = 'color' | 'success' | 'error' | 'eliminated' | 'timeout' | 'beep' | 'victory';
+type SoundType = 'color' | 'success' | 'error' | 'eliminated' | 'timeout' | 'beep' | 'victory' | 'buttonPress' | 'buttonRelease' | 'tick';
 
 interface SoundConfig {
   frequency: number;
@@ -45,6 +45,10 @@ const SOUND_CONFIGS: Record<SoundType, Partial<SoundConfig>> = {
   timeout: { frequency: 300, duration: 0.3, type: 'square', volume: 0.3 },
   beep: { frequency: 600, duration: 0.15, type: 'sine', volume: 0.3 },
   victory: { frequency: 523.25, duration: 0.8, type: 'sine', volume: 0.5 },
+  // UI Sounds - Based on Elite Mobile Game UX Design System
+  buttonPress: { frequency: 800, duration: 0.08, type: 'sine', volume: 0.2 },
+  buttonRelease: { frequency: 600, duration: 0.05, type: 'sine', volume: 0.15 },
+  tick: { frequency: 440, duration: 0.1, type: 'sine', volume: 0.25 },
 };
 
 // =============================================================================
@@ -312,6 +316,67 @@ class SoundService {
       duration: count === 0 ? 0.4 : 0.2,
       type: 'sine',
       volume: 0.4,
+    });
+  }
+
+  /**
+   * Play button press sound (UI feedback)
+   */
+  playButtonPress(): void {
+    const config = SOUND_CONFIGS.buttonPress;
+    this.playTone({
+      frequency: config.frequency!,
+      duration: config.duration!,
+      type: config.type!,
+      volume: config.volume!,
+    });
+  }
+
+  /**
+   * Play button release sound (UI feedback)
+   */
+  playButtonRelease(): void {
+    const config = SOUND_CONFIGS.buttonRelease;
+    this.playTone({
+      frequency: config.frequency!,
+      duration: config.duration!,
+      type: config.type!,
+      volume: config.volume!,
+    });
+  }
+
+  /**
+   * Play timer tick sound (urgency)
+   */
+  playTick(): void {
+    const config = SOUND_CONFIGS.tick;
+    this.playTone({
+      frequency: config.frequency!,
+      duration: config.duration!,
+      type: config.type!,
+      volume: config.volume!,
+    });
+  }
+
+  /**
+   * Play round complete sound (mini celebration)
+   */
+  playRoundComplete(): void {
+    if (this.isMuted || !this.audioContext || !this.isInitialized) return;
+
+    // Quick ascending 2-note success
+    const notes = [523.25, 783.99]; // C5 to G5
+    const noteLength = 0.12;
+    
+    notes.forEach((freq, index) => {
+      setTimeout(() => {
+        this.playTone({
+          frequency: freq,
+          duration: noteLength,
+          type: 'sine',
+          volume: 0.35,
+        });
+      }, index * 120);
     });
   }
 }

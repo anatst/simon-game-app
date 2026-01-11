@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Elite Mobile Game Animations */
+@import './styles/elite-animations.css';
+
 /* =============================================================================
    MOBILE-FIRST CSS RULES
    Based on: .cursor/MOBILE_FIRST.md
@@ -10,9 +13,11 @@
 body {
   margin: 0;
   min-height: 100vh;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: var(--font-space), system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
   
   /* Prevent overscroll bounce (iOS pull-to-refresh) */
   overscroll-behavior: none;

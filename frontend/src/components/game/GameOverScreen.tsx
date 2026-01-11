@@ -11,6 +11,7 @@
 
 import { useEffect, useState } from 'react';
 import { soundService } from '../../services/soundService';
+import { hapticService } from '../../services/hapticService';
 
 // =============================================================================
 // TYPES
@@ -40,14 +41,26 @@ interface GameOverScreenProps {
 // =============================================================================
 
 const Confetti: React.FC = () => {
-  const colors = ['#ff4136', '#ffdc00', '#2ecc40', '#0074d9', '#ff6b6b', '#ffd93d'];
-  const confettiPieces = Array.from({ length: 50 }, (_, i) => ({
+  // Neon arcade colors for confetti
+  const colors = [
+    'hsl(330, 100%, 60%)', // neon-pink
+    'hsl(185, 100%, 50%)', // neon-cyan
+    'hsl(120, 100%, 50%)', // neon-lime
+    'hsl(35, 100%, 55%)',  // neon-amber
+    'hsl(280, 100%, 60%)', // neon-purple
+    '#ffd93d',
+  ];
+  
+  // More confetti pieces for bigger celebration
+  const confettiPieces = Array.from({ length: 80 }, (_, i) => ({
     id: i,
     left: Math.random() * 100,
-    delay: Math.random() * 3,
-    duration: 2 + Math.random() * 2,
+    delay: Math.random() * 2,
+    duration: 2.5 + Math.random() * 2.5,
     color: colors[Math.floor(Math.random() * colors.length)],
     rotation: Math.random() * 360,
+    size: 8 + Math.random() * 8,
+    shape: Math.random() > 0.6 ? 'circle' : Math.random() > 0.5 ? 'square' : 'star',
   }));
 
   return (
@@ -55,15 +68,22 @@ const Confetti: React.FC = () => {
       {confettiPieces.map((piece) => (
         <div
           key={piece.id}
-          className="absolute w-3 h-3 animate-fall"
+          className="absolute animate-confetti-fall"
           style={{
             left: `${piece.left}%`,
             top: '-20px',
-            backgroundColor: piece.color,
+            width: `${piece.size}px`,
+            height: `${piece.size}px`,
+            backgroundColor: piece.shape !== 'star' ? piece.color : 'transparent',
             animationDelay: `${piece.delay}s`,
             animationDuration: `${piece.duration}s`,
             transform: `rotate(${piece.rotation}deg)`,
-            borderRadius: Math.random() > 0.5 ? '50%' : '0',
+            borderRadius: piece.shape === 'circle' ? '50%' : '0',
+            boxShadow: `0 0 ${piece.size / 2}px ${piece.color}`,
+            ...(piece.shape === 'star' ? {
+              clipPath: 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)',
+              backgroundColor: piece.color,
+            } : {}),
           }}
         />
       ))}
@@ -112,12 +132,13 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
     return () => clearInterval(timer);
   }, [winner]);
 
-  // Play victory sound on mount
+  // Play victory sound and haptics on mount
   useEffect(() => {
     soundService.playVictory();
+    hapticService.victory();
     
-    // Hide confetti after 5 seconds
-    const timer = setTimeout(() => setShowConfetti(false), 5000);
+    // Hide confetti after 6 seconds (longer celebration)
+    const timer = setTimeout(() => setShowConfetti(false), 6000);
     return () => clearTimeout(timer);
   }, []);
 
@@ -170,42 +191,44 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden grid-pattern" style={{ background: 'hsl(var(--background))' }}>
       {/* Confetti */}
       {showConfetti && <Confetti />}
       
       <div className="relative z-10 w-full max-w-md">
         {/* Game Over Title */}
         <div className="text-center mb-6">
-          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">
+          <h1 className="text-3xl sm:text-4xl font-orbitron font-bold neon-text-pink pulse-neon mb-2">
             🎉 GAME OVER 🎉
           </h1>
         </div>
 
-        {/* Winner Section */}
+        {/* Winner Section - Elite Celebration */}
         {winner && (
-          <div className="bg-gradient-to-br from-yellow-400/20 to-orange-500/20 border-2 border-yellow-400 rounded-2xl p-6 mb-4 text-center relative overflow-hidden">
-            {/* Glow effect */}
-            <div className="absolute inset-0 bg-yellow-400/10 animate-pulse" />
+          <div className="arcade-frame p-6 mb-4 text-center relative overflow-hidden neon-border-amber animate-pop-in">
+            {/* Animated glow rings */}
+            <div className="absolute inset-0 bg-neon-amber/10 animate-pulse-glow" />
+            <div className="absolute inset-2 rounded-lg border border-neon-amber/30 animate-pulse-glow" style={{ animationDelay: '200ms' }} />
             
             <div className="relative z-10">
-              {/* Crown animation */}
-              <div className="text-5xl mb-2 animate-bounce">👑</div>
+              {/* Crown with elite float animation */}
+              <div className="text-6xl mb-3 animate-crown-float">👑</div>
               
-              <h2 className="text-2xl font-bold text-yellow-400 mb-2">
-                {isSoloGame ? 'GREAT JOB!' : 'WINNER!'}
+              <h2 className="text-2xl font-orbitron font-bold neon-text-amber mb-2 animate-victory-bounce">
+                {isSoloGame ? 'GREAT JOB!' : '🏆 WINNER! 🏆'}
               </h2>
               
-              <div className="text-white text-xl font-semibold mb-1">
+              <div className="text-xl font-space font-semibold mb-2 animate-fade-in" style={{ color: 'hsl(var(--foreground))', animationDelay: '300ms' }}>
                 {winner.name}
               </div>
               
-              <div className="text-4xl font-bold text-yellow-300">
+              {/* Animated score counter */}
+              <div className="text-5xl font-orbitron font-bold neon-text-amber animate-score-count">
                 {animatedScore} <span className="text-lg">points</span>
               </div>
               
               {isWinner && !isSoloGame && (
-                <div className="mt-2 text-green-400 text-sm font-semibold">
+                <div className="mt-3 neon-text-lime text-sm font-space font-semibold animate-pulse-scale">
                   ✨ That's YOU! ✨
                 </div>
               )}
@@ -215,8 +238,8 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
 
         {/* Scoreboard (Multiplayer only) */}
         {!isSoloGame && finalScores.length > 0 && (
-          <div className="bg-gray-800/80 rounded-2xl p-4 mb-4">
-            <h3 className="text-white font-bold text-center mb-3 text-sm uppercase tracking-wide">
+          <div className="arcade-frame p-4 mb-4 neon-border-cyan">
+            <h3 className="font-orbitron font-bold text-center mb-3 text-sm uppercase tracking-wide neon-text-cyan">
               Final Standings
             </h3>
             
@@ -230,27 +253,27 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
                     key={player.playerId}
                     className={`flex items-center justify-between px-3 py-2 rounded-lg transition-all ${
                       isCurrentPlayer
-                        ? 'bg-blue-600 scale-105'
+                        ? 'bg-neon-cyan/30 scale-105 neon-border-cyan'
                         : rank <= 3
-                          ? 'bg-gray-700'
-                          : 'bg-gray-700/50'
+                          ? 'bg-muted'
+                          : 'bg-muted/50'
                     }`}
                   >
                     <div className="flex items-center gap-3">
                       <span className="text-xl w-8 text-center">
                         {getMedal(rank)}
                       </span>
-                      <span className="text-white font-medium">
+                      <span className={`font-space font-medium ${isCurrentPlayer ? 'neon-text-cyan' : 'text-foreground'}`}>
                         {player.name}
-                        {isCurrentPlayer && <span className="text-xs ml-1 text-blue-200">(you)</span>}
+                        {isCurrentPlayer && <span className="text-xs ml-1 neon-text-cyan">(you)</span>}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-white font-bold">
+                      <span className={`font-orbitron font-bold ${isCurrentPlayer ? 'neon-text-cyan' : 'text-foreground'}`}>
                         {player.score} pts
                       </span>
                       {player.isEliminated && (
-                        <span className="text-red-400 text-xs">💀</span>
+                        <span className="neon-text-pink text-xs">💀</span>
                       )}
                     </div>
                   </div>
@@ -261,39 +284,42 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
         )}
 
         {/* Game Stats */}
-        <div className="bg-gray-800/60 rounded-xl p-4 mb-6">
+        <div className="arcade-frame p-4 mb-6 neon-border-purple">
           <div className="flex justify-around text-center">
             <div>
-              <div className="text-2xl font-bold text-white">{roundsPlayed}</div>
-              <div className="text-gray-400 text-xs">Rounds</div>
+              <div className="text-2xl font-orbitron font-bold neon-text-purple">{roundsPlayed}</div>
+              <div className="text-xs font-space" style={{ color: 'hsl(var(--muted-foreground))' }}>Rounds</div>
             </div>
-            <div className="border-l border-gray-600" />
+            <div className="border-l border-border" />
             <div>
-              <div className="text-2xl font-bold text-white">
+              <div className="text-2xl font-orbitron font-bold neon-text-cyan">
                 {finalScores.find(s => s.playerId === currentPlayerId)?.score || 0}
               </div>
-              <div className="text-gray-400 text-xs">Your Score</div>
+              <div className="text-muted-foreground text-xs font-space">Your Score</div>
             </div>
             {!isSoloGame && (
               <>
-                <div className="border-l border-gray-600" />
+                <div className="border-l border-border" />
                 <div>
-                  <div className="text-2xl font-bold text-white">
+                  <div className="text-2xl font-orbitron font-bold neon-text-amber">
                     #{finalScores.findIndex(s => s.playerId === currentPlayerId) + 1}
                   </div>
-                  <div className="text-gray-400 text-xs">Your Rank</div>
+                  <div className="text-muted-foreground text-xs font-space">Your Rank</div>
                 </div>
               </>
             )}
           </div>
         </div>
 
-        {/* Action Buttons */}
+        {/* Action Buttons - Elite Touch Feedback */}
         <div className="space-y-3">
-          {/* Play Again Button */}
+          {/* Play Again Button - Primary Action */}
           <button
-            onClick={onPlayAgain}
-            className="w-full bg-green-500 hover:bg-green-600 active:bg-green-700 text-white font-bold py-4 px-6 rounded-xl transition-all duration-100 active:scale-95 text-lg flex items-center justify-center gap-2 shadow-lg"
+            onClick={() => {
+              hapticService.buttonPress();
+              onPlayAgain();
+            }}
+            className="w-full bg-neon-lime hover:brightness-110 text-background font-arcade py-4 px-6 rounded-xl text-lg flex items-center justify-center gap-2 neon-border-lime animate-pulse-glow btn-glow-press"
             style={{ touchAction: 'manipulation' }}
           >
             🔄 PLAY AGAIN
@@ -301,40 +327,39 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
 
           {/* Home Button */}
           <button
-            onClick={onGoHome}
-            className="w-full bg-gray-700 hover:bg-gray-600 active:bg-gray-500 text-white font-bold py-4 px-6 rounded-xl transition-all duration-100 active:scale-95 text-lg flex items-center justify-center gap-2"
-            style={{ touchAction: 'manipulation' }}
+            onClick={() => {
+              hapticService.light();
+              onGoHome();
+            }}
+            className="w-full hover:brightness-110 font-arcade py-4 px-6 rounded-xl text-lg flex items-center justify-center gap-2 neon-border btn-press"
+            style={{
+              backgroundColor: 'hsl(var(--muted))',
+              color: 'hsl(var(--foreground))',
+              touchAction: 'manipulation'
+            }}
           >
             🏠 HOME
           </button>
 
           {/* Share Button */}
           <button
-            onClick={handleShare}
-            className="w-full bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl transition-all duration-100 active:scale-95 flex items-center justify-center gap-2"
-            style={{ touchAction: 'manipulation' }}
+            onClick={() => {
+              hapticService.medium();
+              handleShare();
+            }}
+            className="w-full hover:brightness-110 font-arcade py-3 px-6 rounded-xl flex items-center justify-center gap-2 neon-border-cyan animate-pulse-glow btn-glow-press"
+            style={{
+              backgroundColor: 'hsl(var(--neon-cyan))',
+              color: 'hsl(var(--background))',
+              touchAction: 'manipulation'
+            }}
           >
             📤 SHARE SCORE
           </button>
         </div>
       </div>
 
-      {/* CSS for confetti animation */}
-      <style>{`
-        @keyframes fall {
-          0% {
-            transform: translateY(0) rotate(0deg);
-            opacity: 1;
-          }
-          100% {
-            transform: translateY(100vh) rotate(720deg);
-            opacity: 0;
-          }
-        }
-        .animate-fall {
-          animation: fall linear infinite;
-        }
-      `}</style>
+      {/* CSS animations are now in elite-animations.css */}
     </div>
   );
 };

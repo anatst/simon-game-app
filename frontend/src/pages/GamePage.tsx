@@ -11,6 +11,7 @@ import { useAuthStore } from '../store/authStore';
 import { useSimonStore } from '../store/simonStore';
 import { socketService } from '../services/socketService';
 import { soundService } from '../services/soundService';
+import { hapticService } from '../services/hapticService';
 import { createSession, joinGame } from '../services/authService';
 import { CircularSimonBoard } from '../components/game/CircularSimonBoard';
 import { GameOverScreen } from '../components/game/GameOverScreen';
@@ -155,6 +156,17 @@ export function GamePage() {
     }
   };
   
+  // Auto-submit when sequence is complete
+  useEffect(() => {
+    if (canSubmit && isInputPhase && gameCode && playerId && !isEliminated) {
+      // Small delay to show the completion message
+      const timer = setTimeout(() => {
+        submitSequence(gameCode, playerId);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [canSubmit, isInputPhase, gameCode, playerId, isEliminated, submitSequence]);
+  
   // Initialize on mount
   useEffect(() => {
     if (!gameCode || !playerId) return;
@@ -201,6 +213,11 @@ export function GamePage() {
     socket.on('error', (data: { message: string }) => {
       console.error('❌ Server error:', data.message);
       setToast({ message: data.message, type: 'error' });
+      // Clear game message if it contains error text
+      if (data.message.toLowerCase().includes('not found') || data.message.toLowerCase().includes('error')) {
+        // Reset game state message to prevent showing error on board
+        resetGame();
+      }
     });
     
     // Listen for countdown
@@ -328,10 +345,10 @@ export function GamePage() {
   // Render countdown
   if (roomStatus === 'countdown' && countdownValue !== null) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center p-4">
+      <div className="min-h-screen flex items-center justify-center p-4 grid-pattern" style={{ background: 'hsl(var(--background))' }}>
         <div className="text-center">
-          <h1 className="text-6xl sm:text-7xl md:text-9xl font-bold text-gray-800 mb-4">{countdownValue}</h1>
-          <p className="text-lg sm:text-xl md:text-2xl text-gray-800">Get ready!</p>
+          <h1 className="text-6xl sm:text-7xl md:text-9xl font-orbitron font-bold neon-text-pink pulse-neon mb-4">{countdownValue}</h1>
+          <p className="text-lg sm:text-xl md:text-2xl font-space neon-text-cyan">Get ready!</p>
         </div>
       </div>
     );
@@ -339,7 +356,7 @@ export function GamePage() {
 
   // Render game board (always visible, with START button in center)
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-2 sm:p-4 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center p-2 sm:p-4 relative overflow-hidden grid-pattern" style={{ background: 'hsl(var(--background))' }}>
       {/* Toast notification */}
       {toast && (
         <Toast
@@ -356,7 +373,7 @@ export function GamePage() {
       <div className="flex flex-col items-center w-full max-w-md">
         {/* Scoreboard - only show when game is active */}
         {isGameActive && Object.keys(scores).length > 0 && (
-          <div className="bg-gray-800 rounded-xl sm:rounded-2xl p-2 sm:p-3 mb-3 w-full">
+          <div className="arcade-frame p-2 sm:p-3 mb-3 w-full neon-border-cyan">
             <div className="space-y-1">
               {players.map((player) => {
                 const score = scores[player.id] || 0;
@@ -367,19 +384,24 @@ export function GamePage() {
                   <div
                     key={player.id}
                     className={`flex items-center justify-between px-2 sm:px-3 py-1.5 sm:py-2 rounded ${
-                      isCurrentPlayer ? 'bg-blue-600' : 'bg-gray-700'
+                      isCurrentPlayer ? 'neon-border-cyan' : ''
                     }`}
+                    style={{
+                      backgroundColor: isCurrentPlayer 
+                        ? 'hsl(var(--neon-cyan) / 0.3)' 
+                        : 'hsl(var(--muted))'
+                    }}
                   >
-                    <span className="text-white text-xs sm:text-sm flex items-center gap-1 sm:gap-2">
+                    <span className="text-xs sm:text-sm font-space flex items-center gap-1 sm:gap-2" style={{ color: 'hsl(var(--foreground))' }}>
                       <span>{player.avatar}</span>
                       <span>{player.displayName}</span>
                     </span>
                     <div className="flex items-center gap-2">
-                      <span className="text-white text-xs sm:text-sm font-bold">
+                      <span className={`text-xs sm:text-sm font-orbitron font-bold ${isCurrentPlayer ? 'neon-text-cyan' : ''}`} style={!isCurrentPlayer ? { color: 'hsl(var(--foreground))' } : {}}>
                         {score} pts
                       </span>
                       {hasSubmitted && isInputPhase && (
-                        <span className="text-green-400 text-xs">✓</span>
+                        <span className="neon-text-lime text-xs">✓</span>
                       )}
                     </div>
                   </div>
@@ -391,9 +413,9 @@ export function GamePage() {
         
         {/* Eliminated Message */}
         {isEliminated && (
-          <div className="bg-red-500/20 border-2 border-red-500 rounded-xl sm:rounded-2xl p-3 mb-3 text-center w-full">
+          <div className="arcade-frame p-3 mb-3 text-center w-full neon-border" style={{ borderColor: 'hsl(var(--simon-red))' }}>
             <div className="text-3xl mb-1">💀</div>
-            <div className="text-white text-base sm:text-lg font-bold">
+            <div className="font-orbitron text-base sm:text-lg font-bold neon-text-pink flicker">
               Eliminated!
             </div>
           </div>
@@ -424,18 +446,23 @@ export function GamePage() {
           {/* START Button - always visible in center */}
           {(!session || (session && roomStatus === 'waiting')) && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="bg-white/95 backdrop-blur-sm rounded-full p-6 shadow-2xl pointer-events-auto">
+              <div className="arcade-frame rounded-full p-6 pointer-events-auto neon-border-lime">
                 <button
-                  onClick={handleStartClick}
+                  onClick={() => {
+                    hapticService.heavy();
+                    soundService.playButtonPress();
+                    handleStartClick();
+                  }}
                   disabled={!!session && !isHost && players.length > 1}
                   className={`
-                    bg-green-500 hover:bg-green-600 active:bg-green-700 
-                    text-white font-bold py-4 px-8 rounded-full 
-                    transition-all duration-200 text-xl sm:text-2xl
+                    bg-neon-lime hover:brightness-110 
+                    text-background font-arcade py-4 px-8 rounded-full 
+                    text-xl sm:text-2xl
                     min-h-[80px] min-w-[200px]
+                    animate-pulse-glow btn-glow-press
                     ${session && !isHost && players.length > 1 
                       ? 'opacity-50 cursor-not-allowed' 
-                      : 'shadow-lg active:scale-95'
+                      : ''
                     }
                   `}
                   style={{ touchAction: 'manipulation' }}
@@ -451,22 +478,22 @@ export function GamePage() {
           )}
         </div>
         
-        {/* Message Display */}
-        {roomStatus === 'active' && (
+        {/* Message Display - only show game messages, not errors */}
+        {roomStatus === 'active' && message && !message.includes('not found') && !message.includes('error') && !message.includes('Error') && (
           <div className="mt-6 text-center">
-            <p className="text-gray-800 text-lg font-medium">{message}</p>
+            <p className="font-space text-lg font-medium neon-text-cyan">{message}</p>
           </div>
         )}
         
         {/* Players Status - only show when waiting */}
         {session && roomStatus === 'waiting' && players.length > 0 && (
-          <div className="mt-8 bg-gray-100 rounded-2xl p-4 w-full">
-            <h3 className="text-gray-800 font-bold mb-2 text-center">
+          <div className="mt-8 arcade-frame p-4 w-full neon-border-purple">
+            <h3 className="font-orbitron font-bold mb-2 text-center neon-text-purple">
               Players ({players.length})
             </h3>
             <div className="grid grid-cols-2 gap-2">
               {players.map(player => (
-                <div key={player.id} className="text-gray-700 text-sm text-center">
+                <div key={player.id} className="font-space text-sm text-center" style={{ color: 'hsl(var(--foreground))' }}>
                   {player.avatar} {player.displayName} {player.isHost && '👑'}
                 </div>
               ))}
@@ -485,17 +512,21 @@ export function GamePage() {
           />
           
           {/* Drawer */}
-          <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl z-50 transform transition-transform duration-300 ease-out">
+          <div className="fixed bottom-0 left-0 right-0 bg-card rounded-t-3xl shadow-2xl z-50 transform transition-transform duration-300 ease-out neon-border-cyan">
             <div className="p-4">
               {/* Handle bar */}
-              <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4" />
+              <div className="w-12 h-1.5 bg-neon-cyan rounded-full mx-auto mb-4" />
               
               {/* Menu Options */}
               <div className="space-y-2 pb-4">
                 <button
-                  onClick={handleStartSoloGame}
+                  onClick={() => {
+                    hapticService.medium();
+                    soundService.playButtonPress();
+                    handleStartSoloGame();
+                  }}
                   disabled={loading}
-                  className="w-full bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white font-bold py-4 px-6 rounded-xl transition-all duration-200 text-lg min-h-[64px] flex items-center justify-center gap-3"
+                  className="w-full bg-neon-purple hover:brightness-110 text-background font-arcade py-4 px-6 rounded-xl text-lg min-h-[64px] flex items-center justify-center gap-3 neon-border-purple animate-pulse-glow btn-glow-press stagger-1"
                   style={{ touchAction: 'manipulation' }}
                 >
                   <span className="text-2xl">🎮</span>
@@ -504,12 +535,14 @@ export function GamePage() {
                 
                 <button
                   onClick={() => {
+                    hapticService.medium();
+                    soundService.playButtonPress();
                     setShowMenuDrawer(false);
                     setFormMode('create');
                     setShowJoinForm(true);
                     setJoinGameCode(''); // Clear join code
                   }}
-                  className="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold py-4 px-6 rounded-xl transition-all duration-200 text-lg min-h-[64px] flex items-center justify-center gap-3"
+                  className="w-full bg-neon-cyan hover:brightness-110 text-background font-arcade py-4 px-6 rounded-xl text-lg min-h-[64px] flex items-center justify-center gap-3 neon-border-cyan animate-pulse-glow btn-glow-press stagger-2"
                   style={{ touchAction: 'manipulation' }}
                 >
                   <span className="text-2xl">👥</span>
@@ -518,11 +551,13 @@ export function GamePage() {
                 
                 <button
                   onClick={() => {
+                    hapticService.medium();
+                    soundService.playButtonPress();
                     setShowMenuDrawer(false);
                     setFormMode('join');
                     setShowJoinForm(true);
                   }}
-                  className="w-full bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-bold py-4 px-6 rounded-xl transition-all duration-200 text-lg min-h-[64px] flex items-center justify-center gap-3"
+                  className="w-full bg-neon-lime hover:brightness-110 text-background font-arcade py-4 px-6 rounded-xl text-lg min-h-[64px] flex items-center justify-center gap-3 neon-border-lime animate-pulse-glow btn-glow-press stagger-3"
                   style={{ touchAction: 'manipulation' }}
                 >
                   <span className="text-2xl">🔗</span>
@@ -536,26 +571,29 @@ export function GamePage() {
       
       {/* Join/Create Game Form Modal */}
       {showJoinForm && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+          <div className="arcade-frame shadow-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto neon-border-pink">
             <button
               onClick={() => {
                 setShowJoinForm(false);
                 setSetupError('');
                 setJoinGameCode('');
               }}
-              className="text-gray-600 hover:text-gray-800 mb-4 text-sm"
+              className="font-space mb-4 text-sm"
+              style={{ color: 'hsl(var(--muted-foreground))' }}
+              onMouseEnter={(e) => e.currentTarget.style.color = 'hsl(var(--foreground))'}
+              onMouseLeave={(e) => e.currentTarget.style.color = 'hsl(var(--muted-foreground))'}
             >
               ← Back
             </button>
             
-            <h2 className="text-2xl font-bold mb-6">
+            <h2 className="text-2xl font-orbitron font-bold mb-6 neon-text-pink">
               {formMode === 'join' ? 'Join Game' : 'Create Group Game'}
             </h2>
             
             <form onSubmit={formMode === 'join' ? handleJoinGame : handleCreateGroupGame} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-space font-medium mb-2" style={{ color: 'hsl(var(--foreground))' }}>
                   Display Name
                 </label>
                 <input
@@ -566,16 +604,21 @@ export function GamePage() {
                   minLength={3}
                   maxLength={12}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                  className="w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-neon-pink focus:border-neon-pink font-space"
+                  style={{ 
+                    backgroundColor: 'hsl(var(--muted))',
+                    borderColor: 'hsl(var(--border))',
+                    color: 'hsl(var(--foreground))'
+                  }}
                 />
               </div>
               
               {formMode === 'join' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-space font-medium mb-2" style={{ color: 'hsl(var(--foreground))' }}>
                     Game Code
                     {searchParams.get('join') && (
-                      <span className="ml-2 text-xs text-green-600 font-normal">
+                      <span className="ml-2 text-xs neon-text-lime font-normal">
                         ✅ Pre-filled from invite link
                       </span>
                     )}
@@ -587,13 +630,13 @@ export function GamePage() {
                     placeholder="ABCDEF"
                     maxLength={6}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent uppercase"
+                    className="w-full px-4 py-3 bg-muted border border-border rounded-lg focus:ring-2 focus:ring-neon-pink focus:border-neon-pink uppercase text-foreground font-space font-bold"
                   />
                 </div>
               )}
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-space font-medium mb-2" style={{ color: 'hsl(var(--foreground))' }}>
                   Avatar
                 </label>
                 <div className="grid grid-cols-4 gap-2">
@@ -604,8 +647,27 @@ export function GamePage() {
                       onClick={() => setAvatarId(id)}
                       className={`p-4 rounded-lg border-2 transition-all ${
                         avatarId === id
-                          ? 'border-purple-600 bg-purple-50'
-                          : 'border-gray-200 hover:border-gray-300'
+                          ? 'neon-border-pink bg-neon-pink/20'
+                          : ''
+                      }
+                      style={{
+                        borderColor: avatarId === id 
+                          ? 'hsl(var(--neon-pink))' 
+                          : 'hsl(var(--border))',
+                        backgroundColor: avatarId === id 
+                          ? 'hsl(var(--neon-pink) / 0.2)' 
+                          : 'hsl(var(--muted))'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (avatarId !== id) {
+                          e.currentTarget.style.borderColor = 'hsl(var(--neon-cyan))';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (avatarId !== id) {
+                          e.currentTarget.style.borderColor = 'hsl(var(--border))';
+                        }
+                      }}
                       }`}
                     >
                       <span className="text-3xl">{['😀', '🎮', '🚀', '⚡', '🎨', '🎯', '🏆', '🌟'][parseInt(id) - 1]}</span>
@@ -615,7 +677,7 @@ export function GamePage() {
               </div>
               
               {setupError && (
-                <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg text-sm">
+                <div className="border border-neon-pink text-neon-pink px-4 py-3 rounded-lg text-sm font-space" style={{ backgroundColor: 'hsl(var(--muted))' }}>
                   {setupError}
                 </div>
               )}
@@ -623,7 +685,11 @@ export function GamePage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-purple-600 hover:bg-purple-700 active:bg-purple-800 disabled:bg-gray-400 text-white font-bold py-4 px-6 rounded-xl transition-all text-lg min-h-[56px]"
+                className="w-full hover:brightness-110 active:brightness-90 font-arcade py-4 px-6 rounded-xl transition-all text-lg min-h-[56px] neon-border-pink glow-pulse"
+                style={{
+                  backgroundColor: loading ? 'hsl(var(--muted))' : 'hsl(var(--neon-pink))',
+                  color: loading ? 'hsl(var(--muted-foreground))' : 'hsl(var(--background))'
+                }}
               >
                 {loading ? 'Loading...' : formMode === 'join' ? 'Join Game' : 'Create Game'}
               </button>

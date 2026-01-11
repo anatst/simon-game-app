@@ -8,6 +8,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { Color } from '../../shared/types';
 import { soundService } from '../../services/soundService';
+import { hapticService } from '../../services/hapticService';
 
 // =============================================================================
 // TYPES
@@ -271,10 +272,8 @@ export const CircularSimonBoard: React.FC<CircularSimonBoardProps> = ({
       // 🔊 PLAY COLOR TONE (duration matches visual)
       soundService.playColor(color, SHOW_DURATION / 1000);
 
-      // Vibrate when showing sequence
-      if ('vibrate' in navigator) {
-        navigator.vibrate(100);
-      }
+      // 📳 Haptic feedback when showing sequence
+      hapticService.sequenceShow();
 
       setTimeout(() => {
         if (isCancelled) {
@@ -317,9 +316,8 @@ export const CircularSimonBoard: React.FC<CircularSimonBoardProps> = ({
     // 🔊 PLAY COLOR TONE (short click sound)
     soundService.playColorClick(color);
 
-    if ('vibrate' in navigator) {
-      navigator.vibrate(50);
-    }
+    // 📳 Haptic feedback for color tap
+    hapticService.colorTap();
 
     setActiveColor(color);
     setTimeout(() => setActiveColor(null), 150);
@@ -341,17 +339,17 @@ export const CircularSimonBoard: React.FC<CircularSimonBoardProps> = ({
     <div className="game-area flex flex-col items-center gap-3 w-full">
       {/* Round Display */}
       <div className="text-center">
-        <h2 className="text-xl sm:text-2xl font-bold text-white mb-1">
+        <h2 className="text-xl sm:text-2xl font-orbitron font-bold neon-text-cyan mb-1">
           Round {round}
         </h2>
         {isShowingSequence ? (
-          <div className="bg-yellow-500/20 border border-yellow-500 rounded-lg px-4 py-2 animate-pulse">
-            <p className="text-yellow-400 font-bold text-base">
+          <div className="arcade-frame px-4 py-2 animate-pulse neon-border-amber">
+            <p className="font-arcade font-bold text-base neon-text-amber">
               👀 MEMORIZE THE PATTERN!
             </p>
           </div>
         ) : (
-          <p className="text-xs sm:text-sm text-gray-300">
+          <p className="text-xs sm:text-sm font-space text-foreground">
             {disabled 
               ? '👻 Spectating...' 
               : isInputPhase
@@ -361,23 +359,36 @@ export const CircularSimonBoard: React.FC<CircularSimonBoardProps> = ({
         )}
       </div>
 
-      {/* Timer Display */}
+      {/* Timer Display - Elite Urgency Escalation */}
       {isInputPhase && secondsRemaining > 0 && (
-        <div className="flex flex-col items-center">
+        <div className="flex flex-col items-center relative">
+          {/* Urgency ring effect for low time */}
+          {secondsRemaining <= 5 && (
+            <div 
+              className="absolute inset-0 rounded-full border-4 border-current animate-ring-expand"
+              style={{ color: 'hsl(var(--neon-pink))' }}
+            />
+          )}
           <div 
             className={`
-              font-bold transition-all duration-200
+              font-orbitron font-bold transition-all duration-200
               ${secondsRemaining > 10 ? 'text-3xl' : ''}
-              ${secondsRemaining > 5 && secondsRemaining <= 10 ? 'text-4xl' : ''}
-              ${secondsRemaining <= 5 ? 'text-5xl' : ''}
-              ${timerColor === 'green' ? 'text-green-400' : ''}
-              ${timerColor === 'yellow' ? 'text-yellow-400' : ''}
-              ${timerColor === 'red' ? 'text-red-400' : ''}
-              ${isTimerPulsing ? 'animate-pulse' : ''}
+              ${secondsRemaining > 5 && secondsRemaining <= 10 ? 'text-4xl animate-pulse-scale' : ''}
+              ${secondsRemaining <= 5 ? 'text-5xl animate-urgent-pulse' : ''}
+              ${timerColor === 'green' ? 'neon-text-lime' : ''}
+              ${timerColor === 'yellow' ? 'neon-text-amber' : ''}
+              ${timerColor === 'red' ? 'neon-text-pink animate-urgent-glow' : ''}
+              ${isTimerPulsing ? 'pulse-neon' : ''}
             `}
           >
             {secondsRemaining}s
           </div>
+          {/* Visual urgency indicator */}
+          {secondsRemaining <= 3 && (
+            <div className="text-xs font-arcade neon-text-pink animate-flash-warning mt-1">
+              HURRY!
+            </div>
+          )}
         </div>
       )}
 
@@ -468,43 +479,20 @@ export const CircularSimonBoard: React.FC<CircularSimonBoardProps> = ({
 
       {/* Player Sequence Display */}
       {isInputPhase && playerSequence.length > 0 && (
-        <div className="bg-gray-700/80 rounded-lg p-2 w-full max-w-[min(85vw,320px)]">
+        <div className="arcade-frame p-2 w-full max-w-[min(85vw,320px)] neon-border-cyan">
           <div className="flex justify-center items-center gap-1 min-h-[28px]">
             {playerSequence.map((color, i) => (
               <span key={i} className="text-xl">
                 {getColorEmoji(color)}
               </span>
             ))}
-            <span className="text-gray-400 text-xs ml-2">
+            <span className="font-space text-muted-foreground text-xs ml-2">
               {playerSequence.length}/{sequence.length}
             </span>
           </div>
         </div>
       )}
 
-      {/* Submit Button */}
-      {isInputPhase && (
-        <button
-          onClick={() => {
-            if (canSubmit && 'vibrate' in navigator) {
-              navigator.vibrate(100);
-            }
-            onSubmit();
-          }}
-          disabled={!canSubmit}
-          style={{ touchAction: 'manipulation' }}
-          className={`
-            w-full max-w-[min(85vw,320px)] px-6 py-3 rounded-xl font-bold text-base
-            min-h-[56px]
-            transition-all duration-100
-            ${canSubmit 
-              ? 'bg-green-500 hover:bg-green-600 active:bg-green-700 text-white cursor-pointer shadow-lg active:scale-95' 
-              : 'bg-gray-600 text-gray-400 cursor-not-allowed opacity-50'}
-          `}
-        >
-          {canSubmit ? '✅ SUBMIT' : `⏳ ${playerSequence.length}/${sequence.length}`}
-        </button>
-      )}
     </div>
   );
 };
