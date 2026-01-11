@@ -157,14 +157,18 @@ export const CircularSimonBoard: React.FC<CircularSimonBoardProps> = ({
   isShowingSequence,
   isInputPhase,
   playerSequence,
-  canSubmit,
+  canSubmit: _canSubmit,
   onColorClick,
-  onSubmit,
+  onSubmit: _onSubmit,
   disabled = false,
   secondsRemaining,
   timerColor,
   isTimerPulsing,
 }) => {
+  // Note: _canSubmit and _onSubmit are kept for interface compatibility
+  // Auto-submit is handled in GamePage.tsx
+  void _canSubmit;
+  void _onSubmit;
   const [activeColor, setActiveColor] = useState<Color | null>(null);
 
   // SVG dimensions
